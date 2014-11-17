@@ -17,7 +17,7 @@
 #define P 11				// Eb/Noの点の数
 #define NUM 0			// 巡回シフト回数
 #define CODE_LENGTH 32	// 符号長
-#define SIR -1			// 信号対干渉電力比 
+#define SIR 0			// 信号対干渉電力比 
 
 // 乱数の初期値設定
 static unsigned long seed = 1;
@@ -47,7 +47,8 @@ void main() {
 	double* RegenerateMyData = (double*)calloc(CODE_LENGTH, sizeof(double));		// 自局再生による自局復調データ
 	double* RegenerateOtherData = (double*)calloc(CODE_LENGTH, sizeof(double));		// 他局再生による他局復調データ
 
-	double* ReserveData = (double*)calloc(CODE_LENGTH, sizeof(double));				//データ管理
+	double* MyReserveData = (double*)calloc(CODE_LENGTH, sizeof(double));				//自局データ管理
+	double* OtherReserveData = (double*)calloc(CODE_LENGTH, sizeof(double));			//他局データ管理
 
 	double* OutputData = (double*)calloc(CODE_LENGTH, sizeof(double));			// 出力信号データ
 
@@ -57,7 +58,8 @@ void main() {
 	double end[P] = {0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0};
 	double en2 = pow(10.0, SIR/10.0);
 
-	double* flag = (double*)calloc(CODE_LENGTH, sizeof(double));	// 干渉除去が成功しているかのフラグ
+	double* my_flag = (double*)calloc(CODE_LENGTH, sizeof(double));		// [自局]干渉除去が成功しているかのフラグ
+	double* other_flag = (double*)calloc(CODE_LENGTH, sizeof(double));	// [他局]干渉除去が成功しているかのフラグ
 
 	seed = (unsigned long)time(NULL);
 
