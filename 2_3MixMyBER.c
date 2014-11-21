@@ -13,11 +13,12 @@
 #include <math.h>
 #include <time.h>
 
-#define N 100000		// 試行回数
+#define N 1000000		// 試行回数
 #define P 11				// Eb/Noの点の数
 #define NUM 0			// 巡回シフト回数
 #define CODE_LENGTH 32	// 符号長
 #define SIR -10			// 信号対干渉電力比 
+#define SIRVTH -1		//0~-10
 
 // 乱数の初期値設定
 static unsigned long seed = 1;
@@ -109,10 +110,10 @@ void main() {
 			//3値判定→成功している場合 flag=1
 			//失敗しているものに関しては3回目の干渉除去へ
 			for(k=0 ; k<CODE_LENGTH ; k++){
-				if(SubtractData[k] >= 1/sqrt(pow(10.0, -1.0/10.0))){
+				if(SubtractData[k] >= 1/sqrt(pow(10.0, SIRVTH/10.0))){
 					flag[k] = 0.0;
 					
-				}else if(SubtractData[k] <= -1/sqrt(pow(10.0, -1.0/10.0))){
+				}else if(SubtractData[k] <= -1/sqrt(pow(10.0, SIRVTH/10.0))){
 					flag[k] = 0.0;
 					
 				}else{
