@@ -13,12 +13,11 @@
 #include <math.h>
 #include <time.h>
 
-#define N 1000000		// 試行回数
+#define N 100000		// 試行回数
 #define P 11				// Eb/Noの点の数
 #define NUM 0			// 巡回シフト回数
 #define CODE_LENGTH 32	// 符号長
 #define SIR -10			// 信号対干渉電力比 
-#define SIRVTH -1		//0~-10
 
 // 乱数の初期値設定
 static unsigned long seed = 1;
@@ -50,7 +49,8 @@ void main() {
 
 	double* OutputData = (double*)calloc(CODE_LENGTH, sizeof(double));			// 出力信号データ
 
-	double* SuccessData = (double*)calloc(CODE_LENGTH, sizeof(double));			// 減算成功データ
+	//double* MySuccessData = (double*)calloc(CODE_LENGTH, sizeof(double));			// [自局]減算成功データ
+	//double* OtherSuccessData = (double*)calloc(CODE_LENGTH, sizeof(double));		// [他局]減算成功データ
 
 	int i, j, k;
 	unsigned long n, nn;
@@ -58,8 +58,8 @@ void main() {
 	double end[P] = {0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0};
 	double en2 = pow(10.0, SIR/10.0);
 
-	double* flag = (double*)calloc(CODE_LENGTH, sizeof(double));		// [自局]干渉除去が成功しているかのフラグ
-
+	double* flag = (double*)calloc(CODE_LENGTH, sizeof(double));		// 干渉除去が成功しているかのフラグ
+	
 	seed = (unsigned long)time(NULL);
 
 	//自局データの作成
@@ -98,6 +98,7 @@ void main() {
 				SubtractData[k] = ReceiveData[k] - (RegenerateOtherData[k] / sqrt(en2));
 			}
 
+			//自局1回目判定
 			Demodulation(SubtractData, MyPn, OutputData);
 
 			//自局信号の再生
@@ -107,66 +108,34 @@ void main() {
 				SubtractData[k] = ReceiveData[k] - RegenerateMyData[k];
 			}
 
-			//3値判定→成功している場合 flag=1
-			//失敗しているものに関しては3回目の干渉除去へ
-			for(k=0 ; k<CODE_LENGTH ; k++){
-				if(SubtractData[k] >= 1/sqrt(pow(10.0, SIRVTH/10.0))){
-					flag[k] = 0.0;
-					
-				}else if(SubtractData[k] <= -1/sqrt(pow(10.0, SIRVTH/10.0))){
-					flag[k] = 0.0;
-					
-				}else{
-					flag[k] = 1.0;
-					SuccessData[k] = SubtractData[k];
-				}
-			}
-
+			//他局1回目判定
 			Demodulation2(SubtractData, OtherPn, OutputData);
 
-			/*  ここから干渉除去2回目　3値判定を用いる　*/
-
+			/* 2回目 */
 
 			//他局信号の再生
 			MakeOtherData(OutputData, OtherPn, RegenerateOtherData);
 
+			//3値判定
 			for(k=0 ; k<CODE_LENGTH ; k++){
-				if(flag[k] == 1.0){
-					SubtractData[k] = ReceiveData[k] - (SuccessData[k] / sqrt(en2));
-				}else{
-					SubtractData[k] = ReceiveData[k] - (RegenerateOtherData[k] / sqrt(en2));
-				}
-			}
-
-			Demodulation(SubtractData, MyPn, OutputData);
-
-/*			//自局信号の再生
-			MakeMyData(OutputData, MyPn, RegenerateMyData);
-
-			for(k=0 ; k<CODE_LENGTH ; k++){
-				if(flag[k] == 1.0){
-					SubtractData[k] = ReceiveData[k] - SuccessData[k];
-				}else{
-					SubtractData[k] = ReceiveData[k] - RegenerateMyData[k];
-				}
-			}
-
-			//フラグの更新
-			for(k=0 ; k<CODE_LENGTH ; k++){
-				if(SubtractData[k] >= 1/sqrt(en2)){
+				if(RegenerateOtherData[k] > 1){
+					SubtractData[k] = ReceiveData[k] - (RegenerateOtherData[k]/sqrt(en2));
 					flag[k] = 0.0;
-					
-				}else if(SubtractData[k] <= -1/sqrt(en2)){
+				}else if(RegenerateOtherData[k] < -1){
+					SubtractData[k] = ReceiveData[k] - (RegenerateOtherData[k]/sqrt(en2));
 					flag[k] = 0.0;
-					
 				}else{
+					SubtractData[k] = ReceiveData[k];
 					flag[k] = 1.0;
-
 				}
 			}
 
-			Demodulation2(SubtractData, OtherPn, OutputData);
-*/
+			//flag=0
+
+
+
+			//自局2回目判定
+			Demodulation(SubtractData, MyPn, OutputData);
 
 			for(k=0; k<CODE_LENGTH ; k++){
 				if(OutputData[k] != MyData[k]){
@@ -576,11 +545,17 @@ void Demodulation2(double* InputData, double* pn, double* OutputData)
 	}
 
 	//スレッシュホールドレベル0でデータの判定
-	for(i=0 ; i<CODE_LENGTH ; i++){
-		if(IntegratedData[i] >= 0.0){
+	for(i=0 ; i<CODE_LENGTH; i++){
+		if(IntegratedData[i] > 0.0){
 			OutputData[i] = 1.0;
-		}else{
+		}else if(IntegratedData[i] < 0.0){
 			OutputData[i] = -1.0;
+		}else{
+			if(rnd()>0.5){
+				OutputData[i] = 1.0;
+			}else{
+				OutputData[i] = -1.0;
+			}
 		}
 	}
 }
