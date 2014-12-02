@@ -18,6 +18,7 @@
 #define NUM 0			// 巡回シフト回数
 #define CODE_LENGTH 32	// 符号長
 #define SIR -10			// 信号対干渉電力比 
+#define SIRVTH -10		// スレッシュホールドレベルの設定
 
 // 乱数の初期値設定
 static unsigned long seed = 1;
@@ -130,9 +131,20 @@ void main() {
 				}
 			}
 
-			//flag=0
+			//flag=0の部分に関しては2倍引くか足す
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				if(flag[k] == 0){
+					if(SubtractData[k] >= 1/pow(10.0, SIRVTH/10.0)){
+						SubtractData[k] -= 2 * 1/sqrt(en2);
+					}else if(SubtractData[k] <= -1/pow(10.0, SIRVTH/10.0)){
+						SubtractData[k] += 2 * 1/sqrt(en2);
+					}else{
 
+					}
+				}else{
 
+				}
+			}
 
 			//自局2回目判定
 			Demodulation(SubtractData, MyPn, OutputData);
