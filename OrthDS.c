@@ -2,7 +2,7 @@
 
 	OrthDS.c
 
-	’¼Œğ•„†‚ğ—p‚¢‚½DS/CDMA’ÊM•û®‚ÌBER“Á«ƒVƒ~ƒ…ƒŒ[ƒVƒ‡ƒ“ƒvƒƒOƒ‰ƒ€
+	â€™Â¼Å’Ã°â€¢â€Ââ€ â€šÃ°â€”pâ€šÂ¢â€šÂ½DS/CDMAâ€™ÃŠÂMâ€¢Ã»Å½Â®â€šÃŒBERâ€œÃÂÂ«Æ’VÆ’~Æ’â€¦Æ’Å’Â[Æ’VÆ’â€¡Æ’â€œÆ’vÆ’ÂÆ’OÆ’â€°Æ’â‚¬
 
 */
 
@@ -49,28 +49,35 @@ void main(){
 
 	int i, j, k;
 
-	unsigned long n;
-	double en, pebs;		
+	unsigned long MyBER00, OtherBER00;
+	unsigned long MyBER01, OtherBER01;
+	unsigned long MyBER02, OtherBER02;
+
+	double en;
+
+	double pebs_M00, pebs_M01, pebs_M02;
+	double pebs_O00, pebs_O01, pebs_O02;
+
 	double end[P] = {0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0};
 	double en2 = pow(10.0, SIR/10.0);
 
 	seed = (unsigned long)time(NULL);
 
 	
-	//©‹Çƒf[ƒ^‚Ì¶¬(ŠÈ’P‰»‚Ì‚½‚ßall1)
+	//Å½Â©â€¹Ã‡Æ’fÂ[Æ’^â€šÃŒÂÂ¶ÂÂ¬(Å Ãˆâ€™Pâ€°Â»â€šÃŒâ€šÂ½â€šÃŸall1)
 	for(i=0 ; i<CODE_LENGTH ; i++){
 		MyData[i] = 1.0;
 	}
 
-	//©‹Çƒf[ƒ^•Ï’²
+	//Å½Â©â€¹Ã‡Æ’fÂ[Æ’^â€¢Ãâ€™Â²
 	MakeMyData(MyData, MyPN, TransmitMyData);
 
 	for(i=0 ; i<P ; i++){
 		en = pow(10.0, end[i]/10.0);
 
-		for(j=n=0 ; j<N ; j++){
+		for(j=MyBER00=OtherBER00=MyBER01=OtherBER01=MyBER02=OtherBER02=0 ; j<N ; j++){
 
-			//‘¼‹Çƒf[ƒ^‚Ì¶¬
+			//â€˜Â¼â€¹Ã‡Æ’fÂ[Æ’^â€šÃŒÂÂ¶ÂÂ¬
 			for(k=0 ; k<CODE_LENGTH ; k++){
 				if(rnd()>0.5){
 						OtherData[k] = 1.0;
@@ -79,45 +86,113 @@ void main(){
 					}
 			}
 
-			//‘¼‹Çƒf[ƒ^•Ï’²
+			//â€˜Â¼â€¹Ã‡Æ’fÂ[Æ’^â€¢Ãâ€™Â²
 			MakeOtherData(OtherData, OtherPN, TransmitOtherData);
 
-			//óMM†‚Ìì¬
+			//Å½Ã³ÂMÂMÂâ€ â€šÃŒÂÃ¬ÂÂ¬
 			for(k=0 ; k<CODE_LENGTH ; k++){
 				ReceiveData[k] = TransmitMyData[k] + (TransmitOtherData[k] / sqrt(en2)) + nrnd(0, sqrt((CODE_LENGTH)/(2.0*en)));
 			}
 
-			//‘¼‹ÇM†‚Ì•œ’²
-			OtherDataDemodulation(ReceiveData, OtherPN, OutputData);
-			//‘¼‹ÇM†‚Ì”»’è
+			//è‡ªå±€ãƒ‡ãƒ¼ã‚¿(å¹²æ¸‰é™¤å»ãªã—)BERç‰¹æ€§å°å‡º	
+			MyDataDemodulation(ReceiveData, MyPN, OutputData);
 			DataDecision(OutputData, DecideData);
-			//‘¼‹ÇM†‚Ì•Ï’²
+
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				if(DecideData[k] != MyData[k]){
+					MyBER00++;
+				}
+			}
+
+			//ä»–å±€ãƒ‡ãƒ¼ã‚¿(å¹²æ¸‰é™¤å»ãªã—)BERç‰¹æ€§å°å‡º
+			OtherDataDemodulation(ReceiveData, OtherPN, OutputData);
+			DataDecision(OutputData, DecideData);
+
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				if(DecideData[k] != OtherData[k]){
+					OtherBER00++;
+				}
+			}
+
 			MakeOtherData(DecideData, OtherPN, OutputData);
 			
-			//Š±Âœ‹
+			//Å Â±ÂÃ‚ÂÅ“â€¹Å½
 			for(k=0 ; k<CODE_LENGTH ; k++){
 				SubtractData[k] = ReceiveData[k] - (OutputData[k]/sqrt(en2)) ;
 			}
 
-			//©‹ÇM†‚Ì•œ’²
+			//Å½Â©â€¹Ã‡ÂMÂâ€ â€šÃŒâ€¢Å“â€™Â²
 			MyDataDemodulation(SubtractData, MyPN, OutputData);
-
-			//”»’è
+			//â€Â»â€™Ã¨
 			DataDecision(OutputData, DecideData);
 
-			//BER“Á«“±o
+			//è‡ªå±€ãƒ‡ãƒ¼ã‚¿(å¹²æ¸‰é™¤å»1å›ç›®)BERç‰¹æ€§å°å‡º
 			for(k=0 ; k<CODE_LENGTH ; k++){
 				if(DecideData[k] != MyData[k]){
-					n++;
+					MyBER01++;
+				}
+			}
+
+			//è‡ªå±€ãƒ‡ãƒ¼ã‚¿ç”Ÿæˆ
+			MakeMyData(DecideData, MyPN, OutputData);
+
+			//å¹²æ¸‰é™¤å»
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				SubtractData[k] = ReceiveData[k] - OutputData[k];
+			}
+
+			OtherDataDemodulation(SubtractData, OtherPN, OutputData);
+			DataDecision(OutputData, DecideData);
+
+			//ä»–å±€ãƒ‡ãƒ¼ã‚¿(å¹²æ¸‰é™¤å»1å›ç›®)BERç‰¹æ€§å°å‡º
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				if(DecideData[k] != OtherData[k]){
+					OtherBER01++;
+				}
+			}
+
+			MakeOtherData(DecideData, OtherPN, OutputData);
+
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				SubtractData[k] = ReceiveData[k] - (OutputData[k]/sqrt(en2)) ;
+			}
+
+			//Å½Â©â€¹Ã‡ÂMÂâ€ â€šÃŒâ€¢Å“â€™Â²
+			MyDataDemodulation(SubtractData, MyPN, OutputData);
+			//â€Â»â€™Ã¨
+			DataDecision(OutputData, DecideData);
+
+			//è‡ªå±€ãƒ‡ãƒ¼ã‚¿(å¹²æ¸‰é™¤å»2å›ç›®)BERç‰¹æ€§å°å‡º
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				if(DecideData[k] != MyData[k]){
+					MyBER02++;
+				}
+			}
+
+			MakeMyData(DecideData, MyPN, OutputData);
+
+			//å¹²æ¸‰é™¤å»
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				SubtractData[k] = ReceiveData[k] - OutputData[k];
+			}
+
+			OtherDataDemodulation(SubtractData, OtherPN, OutputData);
+			DataDecision(OutputData, DecideData);
+
+			//ä»–å±€ãƒ‡ãƒ¼ã‚¿(å¹²æ¸‰é™¤å»2å›ç›®)BERç‰¹æ€§å°å‡º
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				if(DecideData[k] != OtherData[k]){
+					OtherBER02++;
 				}
 			}
 		}
 
-		pebs = (double)n / (double)(N*32);
+		pebs_M00 = (double)MyBER00 / (double)(N*32);	pebs_O00 = (double)OtherBER00 / (double)(N*32);
+		pebs_M01 = (double)MyBER01 / (double)(N*32);	pebs_O01 = (double)OtherBER01 / (double)(N*32);
+		pebs_M02 = (double)MyBER02 / (double)(N*32);	pebs_O02 = (double)OtherBER02 / (double)(N*32);
 
-		printf("Error = %d\n", n);
-		printf("All = %d\n", N*32);
-		printf("%9.6f\t%15.6e\n\n", end[i], pebs);	
+		printf("Eb/No\tMyData00\tMyData01\tMyData02\tOtherData00\tOtherData01\tOtherData02\n");
+		printf("%.1f\t%5.6e\t%5.6e\t%5.6e\t%5.6e\t%5.6e\t%5.6e\n\n", end[i], pebs_M00, pebs_M01, pebs_M02, pebs_O00, pebs_O01, pebs_O02);	
 	}
 }	
 
@@ -159,12 +234,12 @@ void MakeMyData(double* InputData, double* pn, double* OutputData)
 		{1,-1,-1,1,-1,1,1,-1,-1,1,1,-1,1,-1,-1,1,-1,1,1,-1,1,-1,-1,1,1,-1,-1,1,-1,1,1,-1}
 	};
 
-	//‰Šú‰»
+	//Ââ€°Å Ãºâ€°Â»
 	for(i=0 ; i<CODE_LENGTH ; i++){
 		OutputData[i] = 0.0;
 	}
 
-	//‘—Mƒf[ƒ^‚Ìì¬
+	//â€˜â€”ÂMÆ’fÂ[Æ’^â€šÃŒÂÃ¬ÂÂ¬
 	for(i=0 ; i<CODE_LENGTH ; i++){
 		for(j=0 ; j<CODE_LENGTH ; j++){
 			OutputData[j] += WalshCode[i][j] * pn[j] * InputData[i];
@@ -177,7 +252,7 @@ void MakeMyData(double* InputData, double* pn, double* OutputData)
 void MakeOtherData(double* InputData, double* pn, double* OutputData)
 {
 	int i, j;
-	double shift[CODE_LENGTH][CODE_LENGTH];		//„‰ñƒVƒtƒg’¼ŒğGoldŒn—ñ‚Ìì¬
+	double shift[CODE_LENGTH][CODE_LENGTH];		//Ââ€â€°Ã±Æ’VÆ’tÆ’gâ€™Â¼Å’Ã°GoldÅ’nâ€”Ã±â€šÃŒÂÃ¬ÂÂ¬
 
 	double WalshCode[CODE_LENGTH][CODE_LENGTH] = {{1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
 		{1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1},
@@ -213,19 +288,19 @@ void MakeOtherData(double* InputData, double* pn, double* OutputData)
 		{1,-1,-1,1,-1,1,1,-1,-1,1,1,-1,1,-1,-1,1,-1,1,1,-1,1,-1,-1,1,1,-1,-1,1,-1,1,1,-1}
 	};
 
-	//„‰ñƒVƒtƒg’¼ŒğGoldŒn—ñ‚Ìì¬
+	//Ââ€â€°Ã±Æ’VÆ’tÆ’gâ€™Â¼Å’Ã°GoldÅ’nâ€”Ã±â€šÃŒÂÃ¬ÂÂ¬
 	for(i=0 ; i<CODE_LENGTH ; i++){
 		for(j=0 ; j<CODE_LENGTH ; j++){
 			shift[i][j] = pn[(i+j)%(CODE_LENGTH)];
 		}
 	}
 
-	//‰Šú‰»
+	//Ââ€°Å Ãºâ€°Â»
 	for(i=0 ; i<CODE_LENGTH ; i++){
 		OutputData[i] = 0.0;
 	}
 
-	//‘—Mƒf[ƒ^‚Ìì¬
+	//â€˜â€”ÂMÆ’fÂ[Æ’^â€šÃŒÂÃ¬ÂÂ¬
 	for(i=0 ; i<CODE_LENGTH ; i++){
 		for(j=0 ; j<CODE_LENGTH ; j++){
 			OutputData[j] += WalshCode[i][j] * pn[j] * InputData[i];
@@ -274,35 +349,36 @@ void MyDataDemodulation(double* InputData, double* pn, double* OutputData)
 	double WhipData[CODE_LENGTH][CODE_LENGTH];
 	double IntegralData[CODE_LENGTH];
 
-	//‰Šú‰»
+	//Ââ€°Å Ãºâ€°Â»
 	for(i=0 ; i<CODE_LENGTH ; i++){
 		IntegralData[i] = 0.0;
+		OutputData[i] = 0.0;
 	}
 
-	//óMM†‚ÉWalsh•„†‚ÆPNŒn—ñ‚ÌŠes‚ğæZ
+	//Å½Ã³ÂMÂMÂâ€ â€šÃ‰Walshâ€¢â€Ââ€ â€šÃ†PNÅ’nâ€”Ã±â€šÃŒÅ eÂsâ€šÃ°ÂÃ¦Å½Z
 	for(i=0 ; i<CODE_LENGTH ; i++){
 		for(j=0 ; j<CODE_LENGTH ; j++){
 			WhipData[i][j] = InputData[j] * WalshCode[i][j] * pn[j];
 		}
 	}
 	
-	//æ‚èo‚µ‚½ƒf[ƒ^‚ğÏ•ª
+	//Å½Ã¦â€šÃ¨Âoâ€šÂµâ€šÂ½Æ’fÂ[Æ’^â€šÃ°ÂÃâ€¢Âª
 	for(i=0 ; i<CODE_LENGTH; i++){
 		for(j=0 ; j<CODE_LENGTH ; j++){
 			IntegralData[i] += WhipData[i][j];
 		}
 	}
 
-	//Ï•ª‚µ‚½ƒf[ƒ^‚ğ•„†’·‚ÅŠ„‚é
+	//ÂÃâ€¢Âªâ€šÂµâ€šÂ½Æ’fÂ[Æ’^â€šÃ°â€¢â€Ââ€ â€™Â·â€šÃ…Å â€â€šÃ©
 	for(i=0 ; i<CODE_LENGTH ; i++){
-		OutputData[i] = IntegralData[i] /* CODE_LENGTH*/;
+		OutputData[i] = IntegralData[i] / CODE_LENGTH;
 	}	
 }
 
 void OtherDataDemodulation(double* InputData, double* pn, double* OutputData)
 {
 	int i, j;
-	double shift[CODE_LENGTH][CODE_LENGTH];		//„‰ñƒVƒtƒg’¼ŒğGoldŒn—ñ‚Ìì¬
+	double shift[CODE_LENGTH][CODE_LENGTH];		//Ââ€â€°Ã±Æ’VÆ’tÆ’gâ€™Â¼Å’Ã°GoldÅ’nâ€”Ã±â€šÃŒÂÃ¬ÂÂ¬
 
 	double WalshCode[CODE_LENGTH][CODE_LENGTH] = {{1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
 		{1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1},
@@ -341,33 +417,33 @@ void OtherDataDemodulation(double* InputData, double* pn, double* OutputData)
 	double WhipData[CODE_LENGTH][CODE_LENGTH];
 	double IntegralData[CODE_LENGTH];
 
-	//„‰ñƒVƒtƒg’¼ŒğGoldŒn—ñ‚Ìì¬
+	//Ââ€â€°Ã±Æ’VÆ’tÆ’gâ€™Â¼Å’Ã°GoldÅ’nâ€”Ã±â€šÃŒÂÃ¬ÂÂ¬
 	for(i=0 ; i<CODE_LENGTH ; i++){
 		for(j=0 ; j<CODE_LENGTH ; j++){
 			shift[i][j] = pn[(i+j)%(CODE_LENGTH)];
 		}
 	}
 
-	//‰Šú‰»
+	//Ââ€°Å Ãºâ€°Â»
 	for(i=0 ; i<CODE_LENGTH ; i++){
 		IntegralData[i] = 0.0;
 	}
 
-	//óMM†‚ÉWalsh•„†‚ÆPNŒn—ñ‚ÌŠes‚ğæZ
+	//Å½Ã³ÂMÂMÂâ€ â€šÃ‰Walshâ€¢â€Ââ€ â€šÃ†PNÅ’nâ€”Ã±â€šÃŒÅ eÂsâ€šÃ°ÂÃ¦Å½Z
 	for(i=0 ; i<CODE_LENGTH ; i++){
 		for(j=0 ; j<CODE_LENGTH ; j++){
 			WhipData[i][j] = InputData[j] * WalshCode[i][j] * shift[NUM][j];
 		}
 	}
 	
-	//æ‚èo‚µ‚½ƒf[ƒ^‚ğÏ•ª
+	//Å½Ã¦â€šÃ¨Âoâ€šÂµâ€šÂ½Æ’fÂ[Æ’^â€šÃ°ÂÃâ€¢Âª
 	for(i=0 ; i<CODE_LENGTH; i++){
 		for(j=0 ; j<CODE_LENGTH ; j++){
 			IntegralData[i] += WhipData[i][j];
 		}
 	}
 
-	//Ï•ª‚µ‚½ƒf[ƒ^‚ğ•„†’·‚ÅŠ„‚é
+	//ÂÃâ€¢Âªâ€šÂµâ€šÂ½Æ’fÂ[Æ’^â€šÃ°â€¢â€Ââ€ â€™Â·â€šÃ…Å â€â€šÃ©
 	for(i=0 ; i<CODE_LENGTH ; i++){
 		OutputData[i] = IntegralData[i] / CODE_LENGTH;
 	}	
