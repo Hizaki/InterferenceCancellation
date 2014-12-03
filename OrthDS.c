@@ -12,8 +12,8 @@
 #include <math.h>
 #include <time.h>
 
-#define N 1000000
-#define P 7
+#define N 100000
+#define P 11
 #define CODE_LENGTH 32
 #define SIR -10
 #define NUM 0
@@ -25,8 +25,10 @@ static unsigned long seed = 1;
 
 void MakeMyData(double* InputData, double* pn, double* OutputData);
 void MakeOtherData(double* InputData, double* pn, double* OutputData);
-void Demodulation(double* InputData, double* pn, double* OutputData);
-void Decision(double* InputData, double* OutputData);
+void MyDataDemodulation(double* InputData, double* pn, double* OutputData);
+void OtherDataDemodulation(double* InputData, double* pn, double* OutputData);
+void Cancellation(double* InputData, double* OutputData);
+void DataDecision(double* InputData, double* OutputData);
 
 void main(){
 
@@ -41,6 +43,7 @@ void main(){
 
 	double* ReceiveData = (double*)calloc(CODE_LENGTH, sizeof(double));
 	double* OutputData = (double*)calloc(CODE_LENGTH, sizeof(double));
+	double* SubtractData = (double*)calloc(CODE_LENGTH, sizeof(double));
 
 	double* DecideData = (double*)calloc(CODE_LENGTH, sizeof(double));
 
@@ -48,7 +51,7 @@ void main(){
 
 	unsigned long n;
 	double en, pebs;		
-	double end[P] = {0.0, 2.0, 4.0, 6.0, 6.8, 8.0, 10.0};
+	double end[P] = {0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0};
 	double en2 = pow(10.0, SIR/10.0);
 
 	seed = (unsigned long)time(NULL);
@@ -84,11 +87,23 @@ void main(){
 				ReceiveData[k] = TransmitMyData[k] + (TransmitOtherData[k] / sqrt(en2)) + nrnd(0, sqrt((CODE_LENGTH)/(2.0*en)));
 			}
 
-			//復調および判定
-			Demodulation(ReceiveData, MyPN, OutputData);
+			//他局信号の復調
+			OtherDataDemodulation(ReceiveData, OtherPN, OutputData);
+			//他局信号の判定
+			DataDecision(OutputData, DecideData);
+			//他局信号の変調
+			MakeOtherData(DecideData, OtherPN, OutputData);
+			
+			//干渉除去
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				SubtractData[k] = ReceiveData[k] - (OutputData[k]/sqrt(en2)) ;
+			}
 
-			//判定↓
-			Decision(OutputData, DecideData);
+			//自局信号の復調
+			MyDataDemodulation(SubtractData, MyPN, OutputData);
+
+			//判定
+			DataDecision(OutputData, DecideData);
 
 			//BER特性導出
 			for(k=0 ; k<CODE_LENGTH ; k++){
@@ -198,8 +213,6 @@ void MakeOtherData(double* InputData, double* pn, double* OutputData)
 		{1,-1,-1,1,-1,1,1,-1,-1,1,1,-1,1,-1,-1,1,-1,1,1,-1,1,-1,-1,1,1,-1,-1,1,-1,1,1,-1}
 	};
 
-	double WalshMultiplexingData[CODE_LENGTH][CODE_LENGTH];
-
 	//巡回シフト直交Gold系列の作成
 	for(i=0 ; i<CODE_LENGTH ; i++){
 		for(j=0 ; j<CODE_LENGTH ; j++){
@@ -220,7 +233,7 @@ void MakeOtherData(double* InputData, double* pn, double* OutputData)
 	}
 }	
 
-void Demodulation(double* InputData, double* pn, double* OutputData)
+void MyDataDemodulation(double* InputData, double* pn, double* OutputData)
 {
 	int i, j;
 
@@ -286,7 +299,81 @@ void Demodulation(double* InputData, double* pn, double* OutputData)
 	}	
 }
 
-void Decision(double* InputData, double* OutputData)
+void OtherDataDemodulation(double* InputData, double* pn, double* OutputData)
+{
+	int i, j;
+	double shift[CODE_LENGTH][CODE_LENGTH];		//巡回シフト直交Gold系列の作成
+
+	double WalshCode[CODE_LENGTH][CODE_LENGTH] = {{1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+		{1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1},
+		{1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1},
+		{1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1},
+		{1,1,1,1,-1,-1,-1,-1,1,1,1,1,-1,-1,-1,-1,1,1,1,1,-1,-1,-1,-1,1,1,1,1,-1,-1,-1,-1},
+		{1,-1,1,-1,-1,1,-1,1,1,-1,1,-1,-1,1,-1,1,1,-1,1,-1,-1,1,-1,1,1,-1,1,-1,-1,1,-1,1},
+		{1,1,-1,-1,-1,-1,1,1,1,1,-1,-1,-1,-1,1,1,1,1,-1,-1,-1,-1,1,1,1,1,-1,-1,-1,-1,1,1},
+		{1,-1,-1,1,-1,1,1,-1,1,-1,-1,1,-1,1,1,-1,1,-1,-1,1,-1,1,1,-1,1,-1,-1,1,-1,1,1,-1},
+		{1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1},
+		{1,-1,1,-1,1,-1,1,-1,-1,1,-1,1,-1,1,-1,1,1,-1,1,-1,1,-1,1,-1,-1,1,-1,1,-1,1,-1,1},
+		{1,1,-1,-1,1,1,-1,-1,-1,-1,1,1,-1,-1,1,1,1,1,-1,-1,1,1,-1,-1,-1,-1,1,1,-1,-1,1,1},
+		{1,-1,-1,1,1,-1,-1,1,-1,1,1,-1,-1,1,1,-1,1,-1,-1,1,1,-1,-1,1,-1,1,1,-1,-1,1,1,-1},
+		{1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1},
+		{1,-1,1,-1,-1,1,-1,1,-1,1,-1,1,1,-1,1,-1,1,-1,1,-1,-1,1,-1,1,-1,1,-1,1,1,-1,1,-1},
+		{1,1,-1,-1,-1,-1,1,1,-1,-1,1,1,1,1,-1,-1,1,1,-1,-1,-1,-1,1,1,-1,-1,1,1,1,1,-1,-1},
+		{1,-1,-1,1,-1,1,1,-1,-1,1,1,-1,1,-1,-1,1,1,-1,-1,1,-1,1,1,-1,-1,1,1,-1,1,-1,-1,1},
+		{1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
+		{1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1},
+		{1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1},
+		{1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1},
+		{1,1,1,1,-1,-1,-1,-1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,-1,-1,-1,-1,1,1,1,1},
+		{1,-1,1,-1,-1,1,-1,1,1,-1,1,-1,-1,1,-1,1,-1,1,-1,1,1,-1,1,-1,-1,1,-1,1,1,-1,1,-1},
+		{1,1,-1,-1,-1,-1,1,1,1,1,-1,-1,-1,-1,1,1,-1,-1,1,1,1,1,-1,-1,-1,-1,1,1,1,1,-1,-1},
+		{1,-1,-1,1,-1,1,1,-1,1,-1,-1,1,-1,1,1,-1,-1,1,1,-1,1,-1,-1,1,-1,1,1,-1,1,-1,-1,1},
+		{1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1},
+		{1,-1,1,-1,1,-1,1,-1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,1,-1,1,-1,1,-1,1,-1},
+		{1,1,-1,-1,1,1,-1,-1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,1,1,-1,-1,1,1,-1,-1},
+		{1,-1,-1,1,1,-1,-1,1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,1,-1,-1,1,1,-1,-1,1},
+		{1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,-1,-1,-1,-1},
+		{1,-1,1,-1,-1,1,-1,1,-1,1,-1,1,1,-1,1,-1,-1,1,-1,1,1,-1,1,-1,1,-1,1,-1,-1,1,-1,1},
+		{1,1,-1,-1,-1,-1,1,1,-1,-1,1,1,1,1,-1,-1,-1,-1,1,1,1,1,-1,-1,1,1,-1,-1,-1,-1,1,1},
+		{1,-1,-1,1,-1,1,1,-1,-1,1,1,-1,1,-1,-1,1,-1,1,1,-1,1,-1,-1,1,1,-1,-1,1,-1,1,1,-1}
+	};
+
+	double WhipData[CODE_LENGTH][CODE_LENGTH];
+	double IntegralData[CODE_LENGTH];
+
+	//巡回シフト直交Gold系列の作成
+	for(i=0 ; i<CODE_LENGTH ; i++){
+		for(j=0 ; j<CODE_LENGTH ; j++){
+			shift[i][j] = pn[(i+j)%(CODE_LENGTH)];
+		}
+	}
+
+	//初期化
+	for(i=0 ; i<CODE_LENGTH ; i++){
+		IntegralData[i] = 0.0;
+	}
+
+	//受信信号にWalsh符号とPN系列の各行を乗算
+	for(i=0 ; i<CODE_LENGTH ; i++){
+		for(j=0 ; j<CODE_LENGTH ; j++){
+			WhipData[i][j] = InputData[j] * WalshCode[i][j] * shift[NUM][j];
+		}
+	}
+	
+	//取り出したデータを積分
+	for(i=0 ; i<CODE_LENGTH; i++){
+		for(j=0 ; j<CODE_LENGTH ; j++){
+			IntegralData[i] += WhipData[i][j];
+		}
+	}
+
+	//積分したデータを符号長で割る
+	for(i=0 ; i<CODE_LENGTH ; i++){
+		OutputData[i] = IntegralData[i] / CODE_LENGTH;
+	}	
+}
+
+void DataDecision(double* InputData, double* OutputData)
 {
 	int i;
 
