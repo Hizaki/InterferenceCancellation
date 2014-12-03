@@ -17,8 +17,8 @@
 #define P 11				// Eb/Noの点の数
 #define NUM 0			// 巡回シフト回数
 #define CODE_LENGTH 32	// 符号長
-#define SIR -10			// 信号対干渉電力比 
-#define SIRVTH -10		// スレッシュホールドレベルの設定
+#define SIR -1			// 信号対干渉電力比 
+#define SIRVTH 0		// スレッシュホールドレベルの設定
 
 // 乱数の初期値設定
 static unsigned long seed = 1;
@@ -54,7 +54,7 @@ void main() {
 	//double* OtherSuccessData = (double*)calloc(CODE_LENGTH, sizeof(double));		// [他局]減算成功データ
 
 	int i, j, k;
-	unsigned long n, nn;
+	unsigned long n, nn=0;
 	double en, pebs;
 	double end[P] = {0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0};
 	double en2 = pow(10.0, SIR/10.0);
@@ -117,12 +117,17 @@ void main() {
 			//他局信号の再生
 			MakeOtherData(OutputData, OtherPn, RegenerateOtherData);
 
+			/*for(k=0 ; k<CODE_LENGTH ; k++){
+				printf("%lf\n", RegenerateOtherData[k]/sqrt(32));
+			}*/
+
+
 			//3値判定
 			for(k=0 ; k<CODE_LENGTH ; k++){
-				if(RegenerateOtherData[k] > 1){
+				if(RegenerateOtherData[k] > sqrt(CODE_LENGTH)){
 					SubtractData[k] = ReceiveData[k] - (RegenerateOtherData[k]/sqrt(en2));
 					flag[k] = 0.0;
-				}else if(RegenerateOtherData[k] < -1){
+				}else if(RegenerateOtherData[k] < -sqrt(CODE_LENGTH)){
 					SubtractData[k] = ReceiveData[k] - (RegenerateOtherData[k]/sqrt(en2));
 					flag[k] = 0.0;
 				}else{
@@ -132,7 +137,7 @@ void main() {
 			}
 
 			//flag=0の部分に関しては2倍引くか足す
-			for(k=0 ; k<CODE_LENGTH ; k++){
+			/*for(k=0 ; k<CODE_LENGTH ; k++){
 				if(flag[k] == 0){
 					if(SubtractData[k] >= 1/pow(10.0, SIRVTH/10.0)){
 						SubtractData[k] -= 2 * 1/sqrt(en2);
@@ -144,7 +149,7 @@ void main() {
 				}else{
 
 				}
-			}
+			}*/
 
 			//自局2回目判定
 			Demodulation(SubtractData, MyPn, OutputData);
@@ -162,6 +167,7 @@ void main() {
 		printf("All = %d\n", N*32);
 		printf("%9.6f\t%15.6e\n\n", end[i], pebs);
 	}
+		//printf("%d\n", nn/N);
 
 	free(MyData);
 	free(OtherData);
