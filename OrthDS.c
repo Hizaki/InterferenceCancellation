@@ -15,7 +15,7 @@
 #define N 100000
 #define P 11
 #define CODE_LENGTH 32
-#define SIR -10
+#define SIR 0
 #define NUM 0
 
 static unsigned long seed = 1;
@@ -52,16 +52,26 @@ void main(){
 	unsigned long MyBER00, OtherBER00;
 	unsigned long MyBER01, OtherBER01;
 	unsigned long MyBER02, OtherBER02;
+	unsigned long MyBER03, OtherBER03;
+	unsigned long MyBER04, OtherBER04;
+	unsigned long MyBER05, OtherBER05;
 
 	double en;
 
-	double pebs_M00, pebs_M01, pebs_M02;
-	double pebs_O00, pebs_O01, pebs_O02;
+	double pebs_M00, pebs_M01, pebs_M02, pebs_M03, pebs_M04, pebs_M05;
+	double pebs_O00, pebs_O01, pebs_O02, pebs_O03, pebs_O04, pebs_O05;
 
 	double end[P] = {0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0};
 	double en2 = pow(10.0, SIR/10.0);
 
+	FILE *fp;
+
+	fp = fopen("00 BER_Results_0dB.csv", "w");
+
 	seed = (unsigned long)time(NULL);
+
+	printf("Eb/No\tMyData00\tMyData01\tMyData02\tOtherData00\tOtherData01\tOtherData02\n");
+	fprintf(fp, "Eb/No, MyData00, MyData01, MyData02, MyData03, MyData04, MyData05, OtherData00, OtherData01, OtherData02, OtherData03, OtherData04, OtherData05\n");
 
 	
 	//Ž©‹Çƒf[ƒ^‚Ì¶¬(ŠÈ’P‰»‚Ì‚½‚ßall1)
@@ -75,7 +85,7 @@ void main(){
 	for(i=0 ; i<P ; i++){
 		en = pow(10.0, end[i]/10.0);
 
-		for(j=MyBER00=OtherBER00=MyBER01=OtherBER01=MyBER02=OtherBER02=0 ; j<N ; j++){
+		for(j=MyBER00=OtherBER00=MyBER01=OtherBER01=MyBER02=OtherBER02=MyBER03=OtherBER03=MyBER04=OtherBER04=MyBER05=OtherBER05=0 ; j<N ; j++){
 
 			//‘¼‹Çƒf[ƒ^‚Ì¶¬
 			for(k=0 ; k<CODE_LENGTH ; k++){
@@ -185,15 +195,127 @@ void main(){
 					OtherBER02++;
 				}
 			}
+
+			MakeOtherData(DecideData, OtherPN, OutputData);
+
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				SubtractData[k] = ReceiveData[k] - (OutputData[k]/sqrt(en2)) ;
+			}
+
+			//Ž©‹ÇM†‚Ì•œ’²
+			MyDataDemodulation(SubtractData, MyPN, OutputData);
+			//”»’è
+			DataDecision(OutputData, DecideData);
+
+			//自局データ(干渉除去2回目)BER特性導出
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				if(DecideData[k] != MyData[k]){
+					MyBER03++;
+				}
+			}
+
+			MakeMyData(DecideData, MyPN, OutputData);
+
+			//干渉除去
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				SubtractData[k] = ReceiveData[k] - OutputData[k];
+			}
+
+			OtherDataDemodulation(SubtractData, OtherPN, OutputData);
+			DataDecision(OutputData, DecideData);
+
+			//他局データ(干渉除去2回目)BER特性導出
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				if(DecideData[k] != OtherData[k]){
+					OtherBER03++;
+				}
+			}
+
+			MakeOtherData(DecideData, OtherPN, OutputData);
+
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				SubtractData[k] = ReceiveData[k] - (OutputData[k]/sqrt(en2)) ;
+			}
+
+			//Ž©‹ÇM†‚Ì•œ’²
+			MyDataDemodulation(SubtractData, MyPN, OutputData);
+			//”»’è
+			DataDecision(OutputData, DecideData);
+
+			//自局データ(干渉除去2回目)BER特性導出
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				if(DecideData[k] != MyData[k]){
+					MyBER04++;
+				}
+			}
+
+			MakeMyData(DecideData, MyPN, OutputData);
+
+			//干渉除去
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				SubtractData[k] = ReceiveData[k] - OutputData[k];
+			}
+
+			OtherDataDemodulation(SubtractData, OtherPN, OutputData);
+			DataDecision(OutputData, DecideData);
+
+			//他局データ(干渉除去2回目)BER特性導出
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				if(DecideData[k] != OtherData[k]){
+					OtherBER04++;
+				}
+			}
+
+			MakeOtherData(DecideData, OtherPN, OutputData);
+
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				SubtractData[k] = ReceiveData[k] - (OutputData[k]/sqrt(en2)) ;
+			}
+
+			//Ž©‹ÇM†‚Ì•œ’²
+			MyDataDemodulation(SubtractData, MyPN, OutputData);
+			//”»’è
+			DataDecision(OutputData, DecideData);
+
+			//自局データ(干渉除去2回目)BER特性導出
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				if(DecideData[k] != MyData[k]){
+					MyBER05++;
+				}
+			}
+
+			MakeMyData(DecideData, MyPN, OutputData);
+
+			//干渉除去
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				SubtractData[k] = ReceiveData[k] - OutputData[k];
+			}
+
+			OtherDataDemodulation(SubtractData, OtherPN, OutputData);
+			DataDecision(OutputData, DecideData);
+
+			//他局データ(干渉除去2回目)BER特性導出
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				if(DecideData[k] != OtherData[k]){
+					OtherBER05++;
+				}
+			}
+
+
 		}
 
 		pebs_M00 = (double)MyBER00 / (double)(N*32);	pebs_O00 = (double)OtherBER00 / (double)(N*32);
 		pebs_M01 = (double)MyBER01 / (double)(N*32);	pebs_O01 = (double)OtherBER01 / (double)(N*32);
 		pebs_M02 = (double)MyBER02 / (double)(N*32);	pebs_O02 = (double)OtherBER02 / (double)(N*32);
+		pebs_M03 = (double)MyBER03 / (double)(N*32);	pebs_O03 = (double)OtherBER03 / (double)(N*32);
+		pebs_M04 = (double)MyBER04 / (double)(N*32);	pebs_O04 = (double)OtherBER04 / (double)(N*32);
+		pebs_M05 = (double)MyBER05 / (double)(N*32);	pebs_O05 = (double)OtherBER05 / (double)(N*32);
 
-		printf("Eb/No\tMyData00\tMyData01\tMyData02\tOtherData00\tOtherData01\tOtherData02\n");
-		printf("%.1f\t%5.6e\t%5.6e\t%5.6e\t%5.6e\t%5.6e\t%5.6e\n\n", end[i], pebs_M00, pebs_M01, pebs_M02, pebs_O00, pebs_O01, pebs_O02);	
+		printf("%.1f\t%5.6e\t%5.6e\t%5.6e\t%5.6e\t%5.6e\t%5.6e\n\n", end[i], pebs_M00, pebs_M01, pebs_M02, pebs_O00, pebs_O01, pebs_O02);
+		fprintf(fp, "%.1f, %5.6e, %5.6e, %5.6e, %5.6e, %5.6e, %5.6e, %5.6e, %5.6e, %5.6e, %5.6e, %5.6e, %5.6e\n", end[i], pebs_M00, pebs_M01, pebs_M02, pebs_M03, pebs_M04, pebs_M05, pebs_O00, pebs_O01, pebs_O02, pebs_O03, pebs_O04, pebs_O05);	
 	}
+
+	fclose(fp);
 }	
 
 void MakeMyData(double* InputData, double* pn, double* OutputData)
