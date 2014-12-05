@@ -12,7 +12,7 @@
 #include <math.h>
 #include <time.h>
 
-#define N 100000
+#define N 1
 #define P 11
 #define CODE_LENGTH 32
 #define SIR 0
@@ -27,7 +27,7 @@ void MakeMyData(double* InputData, double* pn, double* OutputData);
 void MakeOtherData(double* InputData, double* pn, double* OutputData);
 void MyDataDemodulation(double* InputData, double* pn, double* OutputData);
 void OtherDataDemodulation(double* InputData, double* pn, double* OutputData);
-void Cancellation(double* InputData, double* OutputData);
+void FlagForCancellation(double* InputData, double* FlagData);
 void DataDecision(double* InputData, double* OutputData);
 
 void main(){
@@ -44,6 +44,11 @@ void main(){
 	double* ReceiveData = (double*)calloc(CODE_LENGTH, sizeof(double));
 	double* OutputData = (double*)calloc(CODE_LENGTH, sizeof(double));
 	double* SubtractData = (double*)calloc(CODE_LENGTH, sizeof(double));
+
+	double* SubtractOfUser1 = (double*)calloc(CODE_LENGTH, sizeof(double));
+	double* SubtractOfUser2 = (double*)calloc(CODE_LENGTH, sizeof(double));
+
+	double* Flag = (double*)calloc(CODE_LENGTH, sizeof(double));
 
 	double* DecideData = (double*)calloc(CODE_LENGTH, sizeof(double));
 
@@ -66,26 +71,29 @@ void main(){
 
 	FILE *fp;
 
-	fp = fopen("00 BER_Results_0dB.csv", "w");
+	fp = fopen("03 BER_Results_-3dB.csv", "w");
 
 	seed = (unsigned long)time(NULL);
 
 	printf("Eb/No\tMyData00\tMyData01\tMyData02\tOtherData00\tOtherData01\tOtherData02\n");
 	fprintf(fp, "Eb/No, MyData00, MyData01, MyData02, MyData03, MyData04, MyData05, OtherData00, OtherData01, OtherData02, OtherData03, OtherData04, OtherData05\n");
 
-	
-	//Ž©‹Çƒf[ƒ^‚Ì¶¬(ŠÈ’P‰»‚Ì‚½‚ßall1)
-	for(i=0 ; i<CODE_LENGTH ; i++){
-		MyData[i] = 1.0;
-	}
-
-	//Ž©‹Çƒf[ƒ^•Ï’²
-	MakeMyData(MyData, MyPN, TransmitMyData);
-
 	for(i=0 ; i<P ; i++){
 		en = pow(10.0, end[i]/10.0);
 
 		for(j=MyBER00=OtherBER00=MyBER01=OtherBER01=MyBER02=OtherBER02=MyBER03=OtherBER03=MyBER04=OtherBER04=MyBER05=OtherBER05=0 ; j<N ; j++){
+
+			//Ž©‹Çƒf[ƒ^‚Ì¶¬(ŠÈ’P‰»‚Ì‚½‚ßall1)
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				if(rnd()>0.5){
+					MyData[k] = 1.0;
+				}else{
+					MyData[k] = 1.0;
+				}
+			}
+
+			//Ž©‹Çƒf[ƒ^•Ï’²
+			MakeMyData(MyData, MyPN, TransmitMyData);
 
 			//‘¼‹Çƒf[ƒ^‚Ì¶¬
 			for(k=0 ; k<CODE_LENGTH ; k++){
@@ -129,6 +137,8 @@ void main(){
 			//Š±Âœ‹Ž
 			for(k=0 ; k<CODE_LENGTH ; k++){
 				SubtractData[k] = ReceiveData[k] - (OutputData[k]/sqrt(en2)) ;
+
+				SubtractOfUser2[k] = SubtractData[k];
 			}
 
 			//Ž©‹ÇM†‚Ì•œ’²
@@ -149,6 +159,8 @@ void main(){
 			//干渉除去
 			for(k=0 ; k<CODE_LENGTH ; k++){
 				SubtractData[k] = ReceiveData[k] - OutputData[k];
+
+				SubtractOfUser1[k] = SubtractData[k];
 			}
 
 			OtherDataDemodulation(SubtractData, OtherPN, OutputData);
@@ -164,7 +176,18 @@ void main(){
 			MakeOtherData(DecideData, OtherPN, OutputData);
 
 			for(k=0 ; k<CODE_LENGTH ; k++){
-				SubtractData[k] = ReceiveData[k] - (OutputData[k]/sqrt(en2)) ;
+				printf("%lf\n", SubtractData[k]);
+			}
+
+			//3値判定
+			for(k=0 ; k<CODE_LENGTH; k++){
+				if(SubtractOfUser2[k] >= 10){
+					SubtractData[k] = SubtractOfUser2[k] - OutputData[k] / sqrt(en2);
+				}else if(SubtractOfUser2[k]/CODE_LENGTH <= -10){
+					SubtractData[k] = SubtractOfUser2[k] - OutputData[k] / sqrt(en2);
+				}else{
+					SubtractData[k] = SubtractOfUser2[k];
+				}
 			}
 
 			//Ž©‹ÇM†‚Ì•œ’²
@@ -179,7 +202,7 @@ void main(){
 				}
 			}
 
-			MakeMyData(DecideData, MyPN, OutputData);
+/*			MakeMyData(DecideData, MyPN, OutputData);
 
 			//干渉除去
 			for(k=0 ; k<CODE_LENGTH ; k++){
@@ -195,113 +218,7 @@ void main(){
 					OtherBER02++;
 				}
 			}
-
-			MakeOtherData(DecideData, OtherPN, OutputData);
-
-			for(k=0 ; k<CODE_LENGTH ; k++){
-				SubtractData[k] = ReceiveData[k] - (OutputData[k]/sqrt(en2)) ;
-			}
-
-			//Ž©‹ÇM†‚Ì•œ’²
-			MyDataDemodulation(SubtractData, MyPN, OutputData);
-			//”»’è
-			DataDecision(OutputData, DecideData);
-
-			//自局データ(干渉除去2回目)BER特性導出
-			for(k=0 ; k<CODE_LENGTH ; k++){
-				if(DecideData[k] != MyData[k]){
-					MyBER03++;
-				}
-			}
-
-			MakeMyData(DecideData, MyPN, OutputData);
-
-			//干渉除去
-			for(k=0 ; k<CODE_LENGTH ; k++){
-				SubtractData[k] = ReceiveData[k] - OutputData[k];
-			}
-
-			OtherDataDemodulation(SubtractData, OtherPN, OutputData);
-			DataDecision(OutputData, DecideData);
-
-			//他局データ(干渉除去2回目)BER特性導出
-			for(k=0 ; k<CODE_LENGTH ; k++){
-				if(DecideData[k] != OtherData[k]){
-					OtherBER03++;
-				}
-			}
-
-			MakeOtherData(DecideData, OtherPN, OutputData);
-
-			for(k=0 ; k<CODE_LENGTH ; k++){
-				SubtractData[k] = ReceiveData[k] - (OutputData[k]/sqrt(en2)) ;
-			}
-
-			//Ž©‹ÇM†‚Ì•œ’²
-			MyDataDemodulation(SubtractData, MyPN, OutputData);
-			//”»’è
-			DataDecision(OutputData, DecideData);
-
-			//自局データ(干渉除去2回目)BER特性導出
-			for(k=0 ; k<CODE_LENGTH ; k++){
-				if(DecideData[k] != MyData[k]){
-					MyBER04++;
-				}
-			}
-
-			MakeMyData(DecideData, MyPN, OutputData);
-
-			//干渉除去
-			for(k=0 ; k<CODE_LENGTH ; k++){
-				SubtractData[k] = ReceiveData[k] - OutputData[k];
-			}
-
-			OtherDataDemodulation(SubtractData, OtherPN, OutputData);
-			DataDecision(OutputData, DecideData);
-
-			//他局データ(干渉除去2回目)BER特性導出
-			for(k=0 ; k<CODE_LENGTH ; k++){
-				if(DecideData[k] != OtherData[k]){
-					OtherBER04++;
-				}
-			}
-
-			MakeOtherData(DecideData, OtherPN, OutputData);
-
-			for(k=0 ; k<CODE_LENGTH ; k++){
-				SubtractData[k] = ReceiveData[k] - (OutputData[k]/sqrt(en2)) ;
-			}
-
-			//Ž©‹ÇM†‚Ì•œ’²
-			MyDataDemodulation(SubtractData, MyPN, OutputData);
-			//”»’è
-			DataDecision(OutputData, DecideData);
-
-			//自局データ(干渉除去2回目)BER特性導出
-			for(k=0 ; k<CODE_LENGTH ; k++){
-				if(DecideData[k] != MyData[k]){
-					MyBER05++;
-				}
-			}
-
-			MakeMyData(DecideData, MyPN, OutputData);
-
-			//干渉除去
-			for(k=0 ; k<CODE_LENGTH ; k++){
-				SubtractData[k] = ReceiveData[k] - OutputData[k];
-			}
-
-			OtherDataDemodulation(SubtractData, OtherPN, OutputData);
-			DataDecision(OutputData, DecideData);
-
-			//他局データ(干渉除去2回目)BER特性導出
-			for(k=0 ; k<CODE_LENGTH ; k++){
-				if(DecideData[k] != OtherData[k]){
-					OtherBER05++;
-				}
-			}
-
-
+*/
 		}
 
 		pebs_M00 = (double)MyBER00 / (double)(N*32);	pebs_O00 = (double)OtherBER00 / (double)(N*32);
@@ -569,6 +486,25 @@ void OtherDataDemodulation(double* InputData, double* pn, double* OutputData)
 	for(i=0 ; i<CODE_LENGTH ; i++){
 		OutputData[i] = IntegralData[i] / CODE_LENGTH;
 	}	
+}
+
+void FlagForCancellation(double* InputData, double* FlagData)
+{
+	int i;
+
+	for(i=0 ; i<CODE_LENGTH ; i++){
+		InputData[i] = InputData[i] / CODE_LENGTH;
+
+		if(InputData[i] > 1.0){
+			FlagData[i] = 1.0;
+		}else if(InputData[i] < -1.0){
+			FlagData[i] = -1.0;
+		}else{
+			FlagData[i] = 0.0;
+		}
+
+	}
+
 }
 
 void DataDecision(double* InputData, double* OutputData)
