@@ -12,11 +12,12 @@
 #include <math.h>
 #include <time.h>
 
-#define N 1
+#define N 100000
 #define P 11
 #define CODE_LENGTH 32
 #define SIR 0
 #define NUM 0
+#define VTHSIR 25.0
 
 static unsigned long seed = 1;
 
@@ -71,7 +72,7 @@ void main(){
 
 	FILE *fp;
 
-	fp = fopen("03 BER_Results_-3dB.csv", "w");
+	fp = fopen("BER_Results_Vth_250.csv", "w");
 
 	seed = (unsigned long)time(NULL);
 
@@ -175,15 +176,11 @@ void main(){
 
 			MakeOtherData(DecideData, OtherPN, OutputData);
 
-			for(k=0 ; k<CODE_LENGTH ; k++){
-				printf("%lf\n", SubtractData[k]);
-			}
-
 			//3値判定
 			for(k=0 ; k<CODE_LENGTH; k++){
-				if(SubtractOfUser2[k] >= 10){
+				if(SubtractOfUser2[k] >= VTHSIR){
 					SubtractData[k] = SubtractOfUser2[k] - OutputData[k] / sqrt(en2);
-				}else if(SubtractOfUser2[k]/CODE_LENGTH <= -10){
+				}else if(SubtractOfUser2[k]/CODE_LENGTH <= -VTHSIR){
 					SubtractData[k] = SubtractOfUser2[k] - OutputData[k] / sqrt(en2);
 				}else{
 					SubtractData[k] = SubtractOfUser2[k];
