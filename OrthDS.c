@@ -13,11 +13,11 @@
 #include <time.h>
 
 #define N 100000
-#define P 11
+#define P 12
 #define CODE_LENGTH 32
-#define SIR 0
+#define SIR -5
 #define NUM 0
-#define VTHSIR 25.0
+#define VTHSIR 10.0
 
 static unsigned long seed = 1;
 
@@ -49,7 +49,7 @@ void main(){
 	double* SubtractOfUser1 = (double*)calloc(CODE_LENGTH, sizeof(double));
 	double* SubtractOfUser2 = (double*)calloc(CODE_LENGTH, sizeof(double));
 
-	double* Flag = (double*)calloc(CODE_LENGTH, sizeof(double));
+	//double* Flag = (double*)calloc(CODE_LENGTH, sizeof(double));
 
 	double* DecideData = (double*)calloc(CODE_LENGTH, sizeof(double));
 
@@ -67,12 +67,12 @@ void main(){
 	double pebs_M00, pebs_M01, pebs_M02, pebs_M03, pebs_M04, pebs_M05;
 	double pebs_O00, pebs_O01, pebs_O02, pebs_O03, pebs_O04, pebs_O05;
 
-	double end[P] = {0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0};
+	double end[P] = {0.0, 5.0, 6.8, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0};
 	double en2 = pow(10.0, SIR/10.0);
 
 	FILE *fp;
 
-	fp = fopen("BER_Results_Vth_250.csv", "w");
+	fp = fopen("BER_Results_-5dB_vth100.csv", "w");
 
 	seed = (unsigned long)time(NULL);
 
@@ -179,9 +179,9 @@ void main(){
 			//3値判定
 			for(k=0 ; k<CODE_LENGTH; k++){
 				if(SubtractOfUser2[k] >= VTHSIR){
-					SubtractData[k] = SubtractOfUser2[k] - OutputData[k] / sqrt(en2);
-				}else if(SubtractOfUser2[k]/CODE_LENGTH <= -VTHSIR){
-					SubtractData[k] = SubtractOfUser2[k] - OutputData[k] / sqrt(en2);
+					SubtractData[k] = ReceiveData[k] - OutputData[k] / sqrt(en2);
+				}else if(SubtractOfUser2[k] <= -VTHSIR){
+					SubtractData[k] = ReceiveData[k] - OutputData[k] / sqrt(en2);
 				}else{
 					SubtractData[k] = SubtractOfUser2[k];
 				}
@@ -199,11 +199,17 @@ void main(){
 				}
 			}
 
-/*			MakeMyData(DecideData, MyPN, OutputData);
+			MakeMyData(DecideData, MyPN, OutputData);
 
-			//干渉除去
-			for(k=0 ; k<CODE_LENGTH ; k++){
-				SubtractData[k] = ReceiveData[k] - OutputData[k];
+/*			//3値判定
+			for(k=0 ; k<CODE_LENGTH; k++){
+				if(SubtractOfUser2[k] >= 1/sqrt(en2)){
+					SubtractData[k] = ReceiveData[k] - OutputData[k];
+				}else if(SubtractOfUser1[k] <= -sqrt(en2)){
+					SubtractData[k] = ReceiveData[k] - OutputData[k];
+				}else{
+					SubtractData[k] = SubtractOfUser1[k];
+				}
 			}
 
 			OtherDataDemodulation(SubtractData, OtherPN, OutputData);
@@ -215,7 +221,159 @@ void main(){
 					OtherBER02++;
 				}
 			}
+
+			/* 3回目 */
+
+/*			MakeOtherData(DecideData, OtherPN, OutputData);
+
+			//3値判定
+			for(k=0 ; k<CODE_LENGTH; k++){
+				if(SubtractOfUser2[k] >= 1/sqrt(en2)){
+					SubtractData[k] = ReceiveData[k] - OutputData[k] / sqrt(en2);
+				}else if(SubtractOfUser2[k] <= -sqrt(en2)){
+					SubtractData[k] = ReceiveData[k] - OutputData[k] / sqrt(en2);
+				}else{
+					SubtractData[k] = SubtractOfUser2[k];
+				}
+			}
+
+			//Ž©‹ÇM†‚Ì•œ’²
+			MyDataDemodulation(SubtractData, MyPN, OutputData);
+			//”»’è
+			DataDecision(OutputData, DecideData);
+
+			//自局データ(干渉除去3回目)BER特性導出
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				if(DecideData[k] != MyData[k]){
+					MyBER03++;
+				}
+			}
+
+			MakeMyData(DecideData, MyPN, OutputData);
+
+			//3値判定
+			for(k=0 ; k<CODE_LENGTH; k++){
+				if(SubtractOfUser2[k] >= 1/sqrt(en2)){
+					SubtractData[k] = ReceiveData[k] - OutputData[k];
+				}else if(SubtractOfUser1[k] <= -sqrt(en2)){
+					SubtractData[k] = ReceiveData[k] - OutputData[k];
+				}else{
+					SubtractData[k] = SubtractOfUser1[k];
+				}
+			}
+
+			OtherDataDemodulation(SubtractData, OtherPN, OutputData);
+			DataDecision(OutputData, DecideData);
+
+			//他局データ(干渉除去3回目)BER特性導出
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				if(DecideData[k] != OtherData[k]){
+					OtherBER03++;
+				}
+			}
+
+			/* 4回目 */
+
+/*			MakeOtherData(DecideData, OtherPN, OutputData);
+
+			//3値判定
+			for(k=0 ; k<CODE_LENGTH; k++){
+				if(SubtractOfUser2[k] >= 1/sqrt(en2)){
+					SubtractData[k] = ReceiveData[k] - OutputData[k] / sqrt(en2);
+				}else if(SubtractOfUser2[k] <= -sqrt(en2)){
+					SubtractData[k] = ReceiveData[k] - OutputData[k] / sqrt(en2);
+				}else{
+					SubtractData[k] = SubtractOfUser2[k];
+				}
+			}
+
+			//Ž©‹ÇM†‚Ì•œ’²
+			MyDataDemodulation(SubtractData, MyPN, OutputData);
+			//”»’è
+			DataDecision(OutputData, DecideData);
+
+			//自局データ(干渉除去4回目)BER特性導出
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				if(DecideData[k] != MyData[k]){
+					MyBER04++;
+				}
+			}
+
+			MakeMyData(DecideData, MyPN, OutputData);
+
+			//3値判定
+			for(k=0 ; k<CODE_LENGTH; k++){
+				if(SubtractOfUser2[k] >= 1/sqrt(en2)){
+					SubtractData[k] = ReceiveData[k] - OutputData[k];
+				}else if(SubtractOfUser1[k] <= -sqrt(en2)){
+					SubtractData[k] = ReceiveData[k] - OutputData[k];
+				}else{
+					SubtractData[k] = SubtractOfUser1[k];
+				}
+			}
+
+			OtherDataDemodulation(SubtractData, OtherPN, OutputData);
+			DataDecision(OutputData, DecideData);
+
+			//他局データ(干渉除去4回目)BER特性導出
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				if(DecideData[k] != OtherData[k]){
+					OtherBER04++;
+				}
+			}
+
+			/* 5回目 */
+
+/*			MakeOtherData(DecideData, OtherPN, OutputData);
+
+			//3値判定
+			for(k=0 ; k<CODE_LENGTH; k++){
+				if(SubtractOfUser2[k] >= 1/sqrt(en2)){
+					SubtractData[k] = ReceiveData[k] - OutputData[k] / sqrt(en2);
+				}else if(SubtractOfUser2[k] <= -sqrt(en2)){
+					SubtractData[k] = ReceiveData[k] - OutputData[k] / sqrt(en2);
+				}else{
+					SubtractData[k] = SubtractOfUser2[k];
+				}
+			}
+
+			//Ž©‹ÇM†‚Ì•œ’²
+			MyDataDemodulation(SubtractData, MyPN, OutputData);
+			//”»’è
+			DataDecision(OutputData, DecideData);
+
+			//自局データ(干渉除去5回目)BER特性導出
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				if(DecideData[k] != MyData[k]){
+					MyBER05++;
+				}
+			}
+
+			MakeMyData(DecideData, MyPN, OutputData);
+
+			//3値判定
+			for(k=0 ; k<CODE_LENGTH; k++){
+				if(SubtractOfUser2[k] >= 1/sqrt(en2)){
+					SubtractData[k] = ReceiveData[k] - OutputData[k];
+				}else if(SubtractOfUser1[k] <= -sqrt(en2)){
+					SubtractData[k] = ReceiveData[k] - OutputData[k];
+				}else{
+					SubtractData[k] = SubtractOfUser1[k];
+				}
+			}
+
+			OtherDataDemodulation(SubtractData, OtherPN, OutputData);
+			DataDecision(OutputData, DecideData);
+
+			//他局データ(干渉除去2回目)BER特性導出
+			for(k=0 ; k<CODE_LENGTH ; k++){
+				if(DecideData[k] != OtherData[k]){
+					OtherBER05++;
+				}
+			}
 */
+
+
 		}
 
 		pebs_M00 = (double)MyBER00 / (double)(N*32);	pebs_O00 = (double)OtherBER00 / (double)(N*32);
