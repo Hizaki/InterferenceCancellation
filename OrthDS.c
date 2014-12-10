@@ -15,9 +15,9 @@
 #define N 100000
 #define P 12
 #define CODE_LENGTH 32
-#define SIR -5
+#define SIR -2
 #define NUM 0
-#define VTHSIR 10.0
+//#define VTHSIR 10.0
 
 static unsigned long seed = 1;
 
@@ -70,9 +70,23 @@ void main(){
 	double end[P] = {0.0, 5.0, 6.8, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0};
 	double en2 = pow(10.0, SIR/10.0);
 
+	double ThresholdData[P][11]={{8.0, 8.0, 7.0, 5.5, 6.0, 5.5, 0.0, 0.0, 0.0, 0.0, 0.0},
+	{6.0, 6.5, 4.0, 3.5, 3.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+	{6.5, 5.0, 4.0, 3.5, 3.0, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+	{6.0, 4.5, 4.0, 3.0, 3.0, 4.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+	{5.5, 4.0, 2.5, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+	{5.0, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+	{5.0, 4.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+	{7.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+	{6.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+	{7.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+	{7.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+	{7.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
+
+
 	FILE *fp;
 
-	fp = fopen("BER_Results_-5dB_vth100.csv", "w");
+	fp = fopen("BER_Results_-2dB.csv", "w");
 
 	seed = (unsigned long)time(NULL);
 
@@ -178,12 +192,22 @@ void main(){
 
 			//3値判定
 			for(k=0 ; k<CODE_LENGTH; k++){
-				if(SubtractOfUser2[k] >= VTHSIR){
-					SubtractData[k] = ReceiveData[k] - OutputData[k] / sqrt(en2);
-				}else if(SubtractOfUser2[k] <= -VTHSIR){
-					SubtractData[k] = ReceiveData[k] - OutputData[k] / sqrt(en2);
+				if(ThresholdData[P][SIR] != 0.0){
+					if(SubtractOfUser2[k] >= ThresholdData[P][SIR]){
+						SubtractData[k] = ReceiveData[k] - OutputData[k] / sqrt(en2);
+					}else if(SubtractOfUser2[k] <= -ThresholdData[P][SIR]){
+						SubtractData[k] = ReceiveData[k] - OutputData[k] / sqrt(en2);
+					}else{
+						SubtractData[k] = SubtractOfUser2[k];
+					}
 				}else{
-					SubtractData[k] = SubtractOfUser2[k];
+					if(SubtractOfUser2[k] >= 1/sqrt(en2)){
+						SubtractData[k] = ReceiveData[k] - OutputData[k] / sqrt(en2);
+					}else if(SubtractOfUser2[k] <= -1/sqrt(en2)){
+						SubtractData[k] = ReceiveData[k] - OutputData[k] / sqrt(en2);
+					}else{
+						SubtractData[k] = SubtractOfUser2[k];
+					}
 				}
 			}
 
@@ -201,7 +225,7 @@ void main(){
 
 			MakeMyData(DecideData, MyPN, OutputData);
 
-/*			//3値判定
+			//3値判定
 			for(k=0 ; k<CODE_LENGTH; k++){
 				if(SubtractOfUser2[k] >= 1/sqrt(en2)){
 					SubtractData[k] = ReceiveData[k] - OutputData[k];
@@ -222,9 +246,7 @@ void main(){
 				}
 			}
 
-			/* 3回目 */
-
-/*			MakeOtherData(DecideData, OtherPN, OutputData);
+			MakeOtherData(DecideData, OtherPN, OutputData);
 
 			//3値判定
 			for(k=0 ; k<CODE_LENGTH; k++){
@@ -249,7 +271,7 @@ void main(){
 				}
 			}
 
-			MakeMyData(DecideData, MyPN, OutputData);
+/*			MakeMyData(DecideData, MyPN, OutputData);
 
 			//3値判定
 			for(k=0 ; k<CODE_LENGTH; k++){
